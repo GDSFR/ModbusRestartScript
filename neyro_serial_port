@@ -1,0 +1,27 @@
+import serial
+from pymodbus.pdu import ModbusRequest
+from pymodbus.constants import Endian
+from pymodbus.transaction import ModbusRtuFramer
+from pymodbus.server.sync import ModbusSerialServer
+
+# Функция для обработки запросов Modbus RTU
+def handle_modbus_request(request: ModbusRequest):
+if request.function_code == 3: # Чтение регистра
+# Ваш код для обработки чтения регистра
+register_address = request.address
+register_value = 123 # Пример значения регистра
+return register_value
+
+# Создание виртуального последовательного порта
+ser = serial.serial_for_url('loop://', timeout=0)
+
+# Настройка сервера Modbus RTU
+server = ModbusSerialServer(
+framer=ModbusRtuFramer,
+serialport=ser,
+databank=None,
+handle_request=handle_modbus_request
+)
+
+# Запуск сервера
+server.serve_forever()
