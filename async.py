@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3/dev/ttyACM0
 """Pymodbus asynchronous Server Example.
 
 An example of a multi threaded asynchronous server.

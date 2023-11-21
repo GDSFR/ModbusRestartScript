@@ -1,6 +1,8 @@
 import asyncio
 import logging
 
+from pymodbus.framer import ModbusRtuFramer
+
 import helper
 
 from pymodbus.client import (
@@ -24,10 +26,10 @@ def setup_sync_client(description=None, cmdline=None, baudrate=None):
     if args.comm == "tcp":
         client = ModbusTcpClient(
             args.host,
-            port=args.port,
+#            port="/dev/ACM0",
             # Common optional parameters:
-            framer=args.framer,
-            timeout=args.timeout,
+ #           framer=args.framer,
+ #           timeout=args.timeout,
             #    retries=3,
             #    retry_on_empty=False,y
             #    close_comm_on_error=False,
@@ -37,10 +39,10 @@ def setup_sync_client(description=None, cmdline=None, baudrate=None):
         )
     elif args.comm == "serial":
         client = ModbusSerialClient(
-            port=args.port,  # serial port
+            port="/dev/ACM0",  # serial port
             # Common optional parameters:
-            #    framer=ModbusRtuFramer,
-            timeout=args.timeout,
+            framer=ModbusRtuFramer,
+#            timeout=args.timeout,
             #    retries=3,
             #    retry_on_empty=False,
             #    close_comm_on_error=False,.
@@ -67,7 +69,7 @@ def run_sync_client(client, modbus_calls=None):
 
 def test_call(client, slave_id=None):
     """Test connection works."""
-    rr = client.read_coils(32, 1, slave=1)
+    print(client.read_coils(32, 1, slave=1))
 #    assert len(rr.bits) == 8
     rr = client.read_holding_registers(4, 2, slave=1)
 
