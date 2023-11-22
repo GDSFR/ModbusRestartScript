@@ -20,12 +20,7 @@ def send_request(ser, slave_id, to_reset):
     func_id = 3  # Прочитать
     register_id = 2
     register_num = 1
-
-    # slave_id_bytes = slave_id.to_bytes(1, 'big')
-    # register_id_bytes = register_id.to_bytes(2, 'big')
-    # register_num_bytes = register_num.to_bytes(2, 'big')
-
-    # data_unit = struct.pack('BBB',slave_id.to_bytes(1), func_id, register_id_bytes, register_num_bytes)
+    response_good = b""
 
     if to_reset:
         print('Resetting...')
@@ -35,16 +30,24 @@ def send_request(ser, slave_id, to_reset):
         register_val_new = 1
         query = struct.pack(">2B2H", slave_id, func_id, register_id, register_val_new)
         crc = crc16(query)
+
     else:
         query = struct.pack(">2B2H", slave_id, func_id, register_id, register_num)
         crc = crc16(query)
 
-    print('Sended query + crc', query, crc)
-    ser.write(query)
-    ser.write(crc)
+    packet = query + crc
+    print('\nSended query', query)
+    print('\nSended packet', packet)
+    # ser.write(query)
+    # ser.write(crc)
+    ser.write(packet)
 
     rec_data = ser.readall()
     print('Received ', rec_data)
+    if (response_good == ser.readall()):
+        return 1
+    else:
+        return 0
 
 
 def main():
@@ -53,7 +56,7 @@ def main():
     slaves_num = 4
     found = 0
     need = 1
-    response_good = 0x2
+
     timeout = 0.3
 
     for i in range(1, slaves_num + 1):  # 1 --- 20 SLAVES
@@ -61,12 +64,12 @@ def main():
             ser = serial.Serial(port, baudrates[j], timeout=timeout)
             print(f"i - {i}, j = {j}")
 
-            send_request(ser, slave_id=i, to_reset=False)
+            is_good = send_request(ser, slave_id=i, to_reset=False)
             ser.write(b'\x0d')
 
             rec_data = ser.readall()
             print('Received ', rec_data)
-            if True:
+            if is_good:
                 print(f'\n--- Found device ---\t\nspeed:\t [{baudrates[j]}]\nslave_id: \t{i}\n--------------------')
                 send_request(
                     ser,
