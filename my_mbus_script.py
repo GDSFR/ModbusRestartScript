@@ -20,7 +20,7 @@ def send_request(ser, slave_id, to_reset):
     func_id = 3  # Прочитать
     register_id = 2
     register_num = 1
-    response_good = b""
+    response_good = b"\x01\x02"
 
     if to_reset:
         print('Resetting...')
@@ -35,7 +35,11 @@ def send_request(ser, slave_id, to_reset):
         query = struct.pack(">2B2H", slave_id, func_id, register_id, register_num)
         crc = crc16(query)
 
+    # packet_elems = [query, crc]
+    # packet = ''.join(packet_elems)
+
     packet = query + crc
+
     print('\nSended query', query)
     print('\nSended packet', packet)
     # ser.write(query)
@@ -65,6 +69,7 @@ def main():
             print(f"i - {i}, j = {j}")
 
             is_good = send_request(ser, slave_id=i, to_reset=False)
+            print(is_good)
             ser.write(b'\x0d')
 
             rec_data = ser.readall()
