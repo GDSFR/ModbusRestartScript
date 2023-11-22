@@ -1,33 +1,79 @@
 import serial
-import minimalmodbus
 
-def request_construct(slave_id, to_reset=None):
-    a = 1
-    b = 0
+import struct
+
+
+def crc16(data: bytes):
+    crc = 0xffff
+    for cur_byte in data:
+        crc = crc ^ cur_byte
+        for _ in range(8):
+            a = crc
+            carry_flag = a & 0x0001
+            crc = crc >> 1
+            if carry_flag == 1:
+                crc = crc ^ 0xa001
+        return bytes([crc % 256, crc >> 8 % 256])
+
+
+def send_request(ser, slave_id, to_reset):
+    func_id = 3  # Прочитать
+    register_id = 2
+    register_num = 1
+
+    # slave_id_bytes = slave_id.to_bytes(1, 'big')
+    # register_id_bytes = register_id.to_bytes(2, 'big')
+    # register_num_bytes = register_num.to_bytes(2, 'big')
+
+    # data_unit = struct.pack('BBB',slave_id.to_bytes(1), func_id, register_id_bytes, register_num_bytes)
+
     if to_reset:
-        return a
-    return b
+        print('Resetting...')
+        func_id = 6  # Записать
+        register_id = 5
+        # register_id_bytes = register_id.to_bytes(2, 'big')
+        register_val_new = 1
+        query = struct.pack(">2B2H", slave_id, func_id, register_id, register_val_new)
+        crc = crc16(query)
+    else:
+        query = struct.pack(">2B2H", slave_id, func_id, register_id, register_num)
+        crc = crc16(query)
+
+    print('Sended query + crc', query, crc)
+    ser.write(query)
+    ser.write(crc)
+
+    rec_data = ser.readall()
+    print('Received ', rec_data)
+
 
 def main():
-    port = '/dev/ttyACM0'
-    baudrates = [110, 300, 1200, 2400, 9600, 19200, 28800, 38400, 57600, 115200, 230400, 460800, 921600]
-    slaves_num = 20
+    port = '/dev/ttyACM2'
+    baudrates = [115200]
+    slaves_num = 4
     found = 0
     need = 1
-    response_good = b'bbbbb'
-    timeout = 0.2
+    response_good = 0x2
+    timeout = 0.3
 
     for i in range(1, slaves_num + 1):  # 1 --- 20 SLAVES
         for j in range(len(baudrates)):
-#            ser = serial.Serial(port, baudrates[j], timeout=timeout)
-#            ser = minimalmodbus.Instrument(port, i, baudrates)
+            ser = serial.Serial(port, baudrates[j], timeout=timeout)
             print(f"i - {i}, j = {j}")
-            ser.write(request_construct(slave_id=i))
-            if ser.read() == response_good:
-                request_construct(
+
+            send_request(ser, slave_id=i, to_reset=False)
+            ser.write(b'\x0d')
+
+            rec_data = ser.readall()
+            print('Received ', rec_data)
+            if True:
+                print(f'\n--- Found device ---\t\nspeed:\t [{baudrates[j]}]\nslave_id: \t{i}\n--------------------')
+                send_request(
+                    ser,
                     slave_id=i,
                     to_reset=True
                 )
+                # print(f'\n--- Found device ---\t\nspeed:\t [{baudrates[j]}]\nslave_id: \t{i}\n--------------------')
                 found += 1
                 break
         if found == need:
